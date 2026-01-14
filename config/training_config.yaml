@@ -1,0 +1,184 @@
+# Training Configuration for CommunityMed AI
+# QLoRA Fine-tuning on Medical Datasets
+
+# Experiment Settings
+experiment:
+  name: "communitymed_tb_detection"
+  description: "Fine-tune MedGemma-4B-IT for TB detection from chest X-rays"
+  seed: 42
+  output_dir: "./outputs/medgemma-4b-it-tb-lora"
+  logging_dir: "./logs"
+  push_to_hub: true
+  hub_model_id: "communitymed-tb-detector"
+
+# Model Settings
+model:
+  name: "google/medgemma-4b-it"
+  use_quantization: true
+  quantization:
+    load_in_4bit: true
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "bfloat16"
+    bnb_4bit_quant_storage: "bfloat16"
+
+# LoRA Settings
+lora:
+  r: 16
+  lora_alpha: 16
+  lora_dropout: 0.05
+  bias: "none"
+  target_modules: "all-linear"
+  task_type: "CAUSAL_LM"
+  modules_to_save:
+    - "lm_head"
+    - "embed_tokens"
+
+# Dataset Settings
+data:
+  # Primary training datasets
+  train_datasets:
+    - name: "pulmonary-chest-xray"
+      source: "kaggle"
+      path: "kmader/pulmonary-chest-xray-abnormalities"
+      split: "train"
+      sample_size: 9000
+      
+    - name: "chest-xray-17-diseases"
+      source: "kaggle"  
+      path: "trainingdatapro/chest-xray-17-diseases"
+      split: "train"
+      sample_size: 5000
+      
+    - name: "shenzhen-tb"
+      source: "kaggle"
+      path: "yoctoman/shcxr-lung-mask"
+      split: "train"
+      sample_size: 600
+
+  # Validation
+  validation_size: 1000
+  test_size: 500
+  
+  # Preprocessing
+  preprocessing:
+    image_size: 512
+    normalize: true
+    augmentation:
+      horizontal_flip: true
+      rotation_range: 15
+      brightness_range: [0.8, 1.2]
+
+# Training Hyperparameters
+training:
+  # Basic settings
+  num_train_epochs: 3
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
+  
+  # Optimizer
+  optim: "adamw_torch_fused"
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  max_grad_norm: 0.3
+  warmup_ratio: 0.03
+  lr_scheduler_type: "linear"
+  
+  # Precision
+  bf16: true
+  tf32: true
+  
+  # Checkpointing
+  save_strategy: "epoch"
+  save_total_limit: 3
+  load_best_model_at_end: true
+  
+  # Evaluation
+  eval_strategy: "steps"
+  eval_steps: 50
+  
+  # Logging
+  logging_steps: 25
+  report_to: "tensorboard"
+  
+  # Advanced
+  gradient_checkpointing_kwargs:
+    use_reentrant: false
+  dataset_kwargs:
+    skip_prepare_dataset: true
+  remove_unused_columns: false
+  label_names:
+    - "labels"
+
+# Prompt Templates
+prompts:
+  # Chest X-ray analysis prompt
+  xray_analysis: |
+    <start_of_turn>user
+    You are an expert radiologist. Analyze this chest X-ray image and provide:
+    1. Key findings
+    2. Likelihood of tuberculosis (Low/Medium/High)
+    3. Other abnormalities detected
+    4. Recommended follow-up actions
+    
+    {image}
+    <end_of_turn>
+    <start_of_turn>model
+
+  # Structured output format
+  findings_template: |
+    **Radiological Findings:**
+    - Primary observation: {primary_finding}
+    - TB likelihood: {tb_likelihood}
+    - Confidence: {confidence}%
+    
+    **Additional Findings:**
+    {additional_findings}
+    
+    **Recommendations:**
+    {recommendations}
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - balanced_accuracy
+    - precision
+    - recall
+    - f1_score
+    - auc_roc
+    
+  # Class labels for TB detection
+  labels:
+    - "normal"
+    - "tuberculosis"
+    - "other_abnormality"
+    
+  # Thresholds
+  decision_threshold: 0.5
+  sensitivity_target: 0.95
+
+# Hardware Configuration
+hardware:
+  # Minimum requirements
+  gpu_memory_gb: 16
+  cpu_cores: 8
+  ram_gb: 32
+  
+  # Recommended
+  recommended_gpu: "NVIDIA A100 40GB"
+  
+  # Colab/Kaggle compatible
+  colab_compatible: true
+  kaggle_compatible: true
+
+# Wandb Configuration (optional)
+wandb:
+  project: "communitymed-ai"
+  entity: null  # Your wandb username
+  tags:
+    - "medgemma"
+    - "tb-detection"
+    - "qlora"
+    - "chest-xray"

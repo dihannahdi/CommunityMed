@@ -1,0 +1,138 @@
+# Model Configuration for CommunityMed AI
+# HAI-DEF Models for the MedGemma Impact Challenge
+
+# Primary Models
+models:
+  # Multimodal radiology model - main workhorse
+  medgemma_4b_it:
+    name: "google/medgemma-4b-it"
+    type: "multimodal"
+    parameters: 4.3e9
+    capabilities:
+      - chest_xray_analysis
+      - dermatology
+      - pathology
+      - ophthalmology
+    load_config:
+      torch_dtype: "bfloat16"
+      device_map: "auto"
+      attn_implementation: "eager"
+    quantization:
+      enabled: true
+      load_in_4bit: true
+      bnb_4bit_quant_type: "nf4"
+      bnb_4bit_use_double_quant: true
+      
+  # Large text model for clinical reasoning
+  medgemma_27b_text:
+    name: "google/medgemma-27b-text-it"
+    type: "text"
+    parameters: 27e9
+    capabilities:
+      - clinical_reasoning
+      - differential_diagnosis
+      - treatment_planning
+      - medical_synthesis
+    load_config:
+      torch_dtype: "bfloat16"
+      device_map: "auto"
+    quantization:
+      enabled: true
+      load_in_4bit: true
+      bnb_4bit_quant_type: "nf4"
+
+  # Pretrained base for custom fine-tuning
+  medgemma_4b_pt:
+    name: "google/medgemma-4b-pt"
+    type: "base"
+    parameters: 4.3e9
+    use_for: "custom_fine_tuning"
+    capabilities:
+      - feature_extraction
+      - embedding_generation
+
+# LoRA Configuration
+lora:
+  r: 16
+  lora_alpha: 16
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  modules_to_save:
+    - "lm_head"
+    - "embed_tokens"
+
+# System Prompts for Agents
+system_prompts:
+  orchestrator: |
+    You are the CommunityMed AI orchestrator, an expert medical triage system designed to assist 
+    Community Health Workers in resource-limited settings. Your role is to:
+    1. Analyze incoming patient data (images, symptoms, audio)
+    2. Route to appropriate specialist agents
+    3. Synthesize findings into actionable recommendations
+    4. Flag cases requiring immediate physician review
+    Always prioritize patient safety and maintain transparency about AI limitations.
+    
+  radiology: |
+    You are an expert radiologist assistant specializing in chest X-ray interpretation for
+    community health settings. Focus on:
+    - Tuberculosis detection and staging
+    - Pneumonia (bacterial vs viral patterns)
+    - Cardiomegaly and heart failure signs
+    - Other pulmonary abnormalities
+    Provide findings in structured format with confidence levels.
+    Always recommend physician confirmation for positive findings.
+    
+  clinical_reasoning: |
+    You are a clinical reasoning expert helping synthesize patient information.
+    Your role is to:
+    - Analyze symptoms and clinical findings
+    - Generate differential diagnoses with probabilities
+    - Recommend appropriate triage level
+    - Suggest next steps for the CHW
+    Always consider the resource-limited setting and available interventions.
+    
+  triage: |
+    You are a medical triage specialist. Based on all available information, classify patients:
+    - EMERGENCY (Red): Immediate life-threatening condition
+    - URGENT (Orange): Serious condition requiring same-day care
+    - PRIORITY (Yellow): Needs medical attention within 24-48 hours
+    - STANDARD (Green): Routine care, can be managed at community level
+    - ADVICE (Blue): Health education/prevention only
+    Provide clear, actionable guidance for the CHW.
+
+# Inference Settings
+inference:
+  max_new_tokens: 512
+  temperature: 0.3
+  top_p: 0.9
+  do_sample: true
+  repetition_penalty: 1.1
+  
+# Edge Deployment Settings
+edge:
+  quantization_method: "gptq"  # or "gguf" for CPU
+  target_size_gb: 2.5
+  supported_devices:
+    - "android_arm64"
+    - "raspberry_pi_4"
+    - "jetson_nano"
+  minimum_ram_gb: 4
+  
+# Evaluation Metrics
+evaluation:
+  primary_metric: "balanced_accuracy"
+  secondary_metrics:
+    - "precision"
+    - "recall"
+    - "f1_score"
+    - "auc_roc"
+  threshold_sensitivity: 0.95  # Prioritize catching positive cases
