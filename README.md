@@ -87,69 +87,56 @@ MedGemma/
 ├── .gitignore                          # Git ignore patterns
 │
 ├── config/                             # Configuration files
-│   ├── model_config.yaml               # Model paths and settings
-│   └── training_config.yaml            # Training hyperparameters
+│   ├── model_config.yaml               # HAI-DEF model paths and settings
+│   └── training_config.yaml            # QLoRA fine-tuning hyperparameters
 │
 ├── src/                                # Source code
-│   ├── __init__.py
 │   ├── models/                         # Model implementations
-│   │   ├── __init__.py
-│   │   ├── medgemma_loader.py          # Load HAI-DEF models with quantization
+│   │   ├── medgemma_loader.py          # 🌟 MedGemma 1.5/4B/27B with quantization
+│   │   ├── hear_loader.py              # 🎤 HeAR audio embeddings (Novel Task)
+│   │   ├── medsiglip_loader.py         # 🖼️ MedSigLIP image embeddings
 │   │   └── fine_tuning.py              # QLoRA fine-tuning pipeline
 │   │
 │   ├── agents/                         # Agentic workflow (Prize Target!)
-│   │   ├── __init__.py
-│   │   ├── orchestrator.py             # Main routing agent
-│   │   ├── radiology_agent.py          # X-ray analysis
-│   │   ├── clinical_agent.py           # Clinical reasoning
-│   │   ├── audio_agent.py              # Lung sound analysis
+│   │   ├── orchestrator.py             # Multi-agent routing
+│   │   ├── radiology_agent.py          # X-ray analysis (MedGemma-4B)
+│   │   ├── clinical_agent.py           # Clinical reasoning (MedGemma-27B)
+│   │   ├── audio_agent.py              # Cough analysis (HeAR)
 │   │   └── triage_agent.py             # Risk stratification
 │   │
-│   ├── data/                           # Data processing
-│   │   ├── __init__.py
-│   │   ├── dataset_loader.py           # Load medical datasets
-│   │   ├── preprocessing.py            # Image/text preprocessing
-│   │   └── collators.py                # Custom data collators
+│   ├── demo/                           # Interactive demos
+│   │   └── gradio_app.py               # 🎯 Live Gradio demo app
 │   │
-│   ├── api/                            # API layer
-│   │   ├── __init__.py
-│   │   ├── main.py                     # FastAPI application
-│   │   ├── routes.py                   # API endpoints
+│   ├── api/                            # FastAPI backend
+│   │   ├── main.py                     # Application entry
+│   │   ├── routes.py                   # REST endpoints
 │   │   └── schemas.py                  # Pydantic schemas
 │   │
 │   └── utils/                          # Utilities
-│       ├── __init__.py
-│       ├── logging_config.py           # Logging setup
-│       └── metrics.py                  # Evaluation metrics
+│       └── impact_calculator.py        # WHO-based impact metrics
 │
-├── notebooks/                          # Jupyter notebooks
-│   ├── 01_data_exploration.ipynb       # Dataset analysis
-│   ├── 02_fine_tuning.ipynb            # Training notebook
-│   ├── 03_evaluation.ipynb             # Model evaluation
-│   └── 04_demo.ipynb                   # Interactive demo
+├── examples/                           # Usage examples
+│   └── tb_screening_demo.py            # 🏥 End-to-end TB screening
 │
 ├── scripts/                            # Utility scripts
-│   ├── download_datasets.py            # Download training data
+│   ├── benchmark.py                    # ⚡ Performance benchmarking
 │   ├── train.py                        # Training script
-│   ├── evaluate.py                     # Evaluation script
-│   ├── quantize.py                     # Quantization for edge
-│   └── deploy.py                       # Deployment script
-│
-├── docker/                             # Docker configurations
-│   ├── Dockerfile                      # Main Dockerfile
-│   ├── Dockerfile.edge                 # Edge deployment
-│   └── docker-compose.yml              # Full stack compose
+│   └── evaluate.py                     # Evaluation script
 │
 ├── submission/                         # Kaggle submission materials
-│   ├── writeup.md                      # 3-page writeup
+│   ├── writeup.md                      # 3-page writeup (competition template)
 │   ├── video_script.md                 # 3-min video script
-│   └── figures/                        # Diagrams and screenshots
+│   └── impact_analysis.md              # WHO-cited impact model
 │
-└── tests/                              # Unit tests
-    ├── __init__.py
-    ├── test_models.py
-    ├── test_agents.py
-    └── test_api.py
+├── tests/                              # Unit tests
+│   ├── test_models.py                  # Model loading tests
+│   ├── test_haidef_models.py           # HeAR/MedSigLIP tests
+│   └── test_api.py                     # API endpoint tests
+│
+└── notebooks/                          # Jupyter notebooks
+    ├── 01_data_exploration.ipynb
+    ├── 02_fine_tuning.ipynb
+    └── 03_evaluation.ipynb
 ```
 
 ---
@@ -179,7 +166,35 @@ pip install -r requirements.txt
 huggingface-cli login
 ```
 
-### 3. Run Training
+### 3. Run the Demo (No GPU Required)
+
+```bash
+# Run end-to-end TB screening demo (mock mode)
+python examples/tb_screening_demo.py
+
+# Launch interactive Gradio demo
+python -m src.demo.gradio_app
+```
+
+### 4. Run Benchmarks (GPU Recommended)
+
+```bash
+# Benchmark HAI-DEF models
+python scripts/benchmark.py --model hear --samples 100
+python scripts/benchmark.py --model medsiglip --samples 100
+
+# Full MedGemma benchmark (requires GPU)
+python scripts/benchmark.py --model medgemma-4b-it --samples 50
+```
+
+### 5. Start API Server
+
+```bash
+# Start FastAPI server
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+### 6. Fine-tune Models (Optional)
 
 ```bash
 # Download datasets
@@ -189,44 +204,33 @@ python scripts/download_datasets.py
 python scripts/train.py --config config/training_config.yaml
 ```
 
-### 4. Start API Server
-
-```bash
-# Start FastAPI server
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-```
-
-### 5. Launch Demo
-
-```bash
-# Run Gradio demo
-python -m notebooks.04_demo
-```
-
 ---
 
 ## 📊 Impact Metrics
 
-| Metric | Value | Source |
-|--------|-------|--------|
-| **Target Population** | 2.5B people in LMICs | WHO |
-| **CHWs Empowered** | 3.5M globally | WHO |
-| **Lives Saved (est.)** | 200K+ annually | Based on TB detection rates |
-| **Cost per Diagnosis** | <$0.10 | Edge deployment |
-| **Time to Diagnosis** | <30 seconds | Benchmark |
+*Evidence-based methodology using WHO data - see [submission/impact_analysis.md](submission/impact_analysis.md)*
+
+| Metric | Year 1 (Pilot) | Year 3 (Scale) | Source |
+|--------|---------------|----------------|--------|
+| **CHWs Empowered** | 10,000 | 200,000 | Deployment plan |
+| **Patients Screened** | 62.5M | 1.25B | 25 patients/CHW/day |
+| **TB Cases Detected** | 159,000 | 3.2M | 17% prevalence |
+| **Lives Saved** | **9,500** | **195,000** | WHO mortality data |
+| **Cost per Life Saved** | $246 | $128 | Full ROI model |
+| **ROI** | 2,458% | 9,831% | Cost-benefit analysis |
 
 ---
 
 ## 🛠️ Technical Details
 
-### Models Used
+### HAI-DEF Models Used
 
-| Model | Parameters | Task | Deployment |
-|-------|------------|------|------------|
-| MedGemma-4B-IT | 4.3B | Multimodal radiology | Cloud + Edge |
-| MedGemma-27B-text | 27B | Clinical reasoning | Cloud only |
-| MedSigLIP | 400M | Image embeddings | Edge |
-| HeAR | 600M | Audio analysis | Edge |
+| Model | Parameters | Task | Prize Target |
+|-------|------------|------|--------------|
+| **MedGemma-1.5-4B-IT** | 4.3B | Multimodal radiology | Main Track |
+| **MedGemma-27B-text-IT** | 27B | Clinical reasoning | Main Track |
+| **HeAR** | 768-dim | Cough audio analysis | Novel Task ($10K) |
+| **MedSigLIP** | 1.2B | Zero-shot image classification | Edge AI |
 
 ### Fine-tuning Configuration
 
