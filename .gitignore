@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Embedded repositories
+communitymed/
+
 # C extensions
 *.so
 

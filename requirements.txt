@@ -75,7 +75,15 @@ mypy>=1.8.0
 optimum>=1.16.0
 onnx>=1.15.0
 onnxruntime>=1.17.0
-# llama-cpp-python>=0.2.0  # For GGUF inference
+# llama-cpp-python>=0.2.0  # For GGUF inference on mobile/edge
 
 # Kaggle Integration
 kaggle>=1.6.0
+
+# HeAR Model Dependencies (for audio analysis - Novel Task)
+# Note: HeAR uses TensorFlow - install separately if needed
+# tensorflow>=2.15.0
+# tensorflow-hub>=0.16.0
+
+# MedSigLIP / SigLIP (for zero-shot image classification)
+# Included via transformers - no additional deps needed

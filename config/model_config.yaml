@@ -1,8 +1,32 @@
 # Model Configuration for CommunityMed AI
 # HAI-DEF Models for the MedGemma Impact Challenge
+# Reference: https://developers.google.com/health-ai-developer-foundations
 
 # Primary Models
 models:
+  # LATEST: MedGemma 1.5 - Released January 2026
+  medgemma_1_5_4b_it:
+    name: "google/medgemma-1.5-4b-it"
+    type: "multimodal"
+    parameters: 4.3e9
+    version: "1.5"
+    release_date: "2026-01-07"
+    capabilities:
+      - chest_xray_analysis
+      - dermatology
+      - pathology
+      - ophthalmology
+      - clinical_reasoning
+    load_config:
+      torch_dtype: "bfloat16"
+      device_map: "auto"
+      attn_implementation: "eager"
+    quantization:
+      enabled: true
+      load_in_4bit: true
+      bnb_4bit_quant_type: "nf4"
+      bnb_4bit_use_double_quant: true
+
   # Multimodal radiology model - main workhorse
   medgemma_4b_it:
     name: "google/medgemma-4b-it"
@@ -50,6 +74,41 @@ models:
     capabilities:
       - feature_extraction
       - embedding_generation
+
+# HAI-DEF Embedding Models
+embedding_models:
+  # HeAR - Health Acoustic Representations
+  # Novel Task: Cough-based TB screening
+  hear:
+    name: "HeAR (Health Acoustic Representations)"
+    source: "https://www.kaggle.com/models/google/hear/TensorFlow2/hear-base/1"
+    type: "audio_embedding"
+    framework: "tensorflow"
+    embedding_dim: 768
+    sample_rate: 16000
+    capabilities:
+      - cough_analysis
+      - breathing_patterns
+      - lung_auscultation
+    use_case: "Novel Task Prize - TB cough screening"
+    
+  # MedSigLIP - Medical Image Embeddings
+  medsiglip:
+    name: "MedSigLIP"
+    base_model: "google/siglip-so400m-patch14-384"
+    type: "image_embedding"
+    embedding_dim: 1152
+    capabilities:
+      - zero_shot_classification
+      - semantic_retrieval
+      - data_efficient_classification
+    image_types:
+      - chest_xray
+      - ct_slices
+      - mri_slices
+      - dermatology
+      - ophthalmology
+      - histopathology
 
 # LoRA Configuration
 lora:

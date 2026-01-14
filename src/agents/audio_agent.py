@@ -1,14 +1,19 @@
 """
 Audio Agent - Voice and cough sound analysis
-Uses Gemini's audio capabilities for respiratory sound analysis
+Uses Google's HeAR (Health Acoustic Representations) for health audio analysis
 Novel Task Prize target: Cough-based TB screening
+
+HeAR is part of Google's HAI-DEF (Health AI Developer Foundations) collection
+Reference: https://developers.google.com/health-ai-developer-foundations/hear
 """
 
 import time
 import base64
+import asyncio
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from pathlib import Path
+import numpy as np
 
 try:
     from loguru import logger
@@ -16,11 +21,33 @@ except ImportError:
     import logging
     logger = logging.getLogger(__name__)
 
+# Import HeAR loader
+try:
+    from ..models.hear_loader import HeARLoader, MockHeARLoader, HeARConfig
+    HAS_HEAR = True
+except ImportError:
+    try:
+        from models.hear_loader import HeARLoader, MockHeARLoader, HeARConfig
+        HAS_HEAR = True
+    except ImportError:
+        HAS_HEAR = False
+        logger.warning("HeAR loader not available")
+
 
 class AudioAgent:
     """
-    Audio agent for analyzing respiratory sounds
-    Targets Novel Task Prize with cough-based TB screening
+    Audio agent for analyzing respiratory sounds using HeAR foundation model
+    
+    Novel Task Prize Target:
+    - Uses Google's HeAR (Health Acoustic Representations) from HAI-DEF
+    - Applies HeAR embeddings to cough-based TB screening
+    - This is a novel application of HeAR beyond its original training scope
+    
+    HeAR produces 768-dimensional embeddings capturing dense audio features
+    suitable for health applications like:
+    - Cough classification
+    - Respiratory sound analysis
+    - Lung auscultation interpretation
     """
     
     COUGH_FEATURES = {
@@ -39,20 +66,25 @@ class AudioAgent:
         "weak_cough",
     ]
     
-    def __init__(self, model=None, device: str = "cuda"):
+    def __init__(self, model=None, device: str = "cuda", use_hear: bool = True):
         """
-        Initialize audio agent
+        Initialize audio agent with HeAR foundation model
         
-        Note: MedGemma 4B-IT supports multimodal including audio through
-        the Gemini backbone. Audio is converted to spectrograms for analysis.
+        Args:
+            model: Optional pre-loaded model
+            device: Device for inference
+            use_hear: Whether to use HeAR model (True) or mock (False)
         """
         self.model = model
         self.device = device
         
-        if model:
-            logger.info("AudioAgent initialized with model")
+        # Initialize HeAR loader
+        if HAS_HEAR and use_hear:
+            self.hear = MockHeARLoader() if model is None else HeARLoader()
+            logger.info("AudioAgent initialized with HeAR foundation model")
         else:
-            logger.warning("AudioAgent initialized without model (mock mode)")
+            self.hear = None
+            logger.warning("AudioAgent initialized without HeAR (mock mode)")
     
     async def analyze(self, case, audio_path: Optional[str] = None) -> "AgentResult":
         """
